@@ -1,6 +1,6 @@
 streamlit
-st-gsheets-connection==0.0.5
-pandas==2.2.3
-plotly==5.24.1
-numpy==1.26.4
-pyarrow==14.0.2
+st-gsheets-connection
+pandas
+plotly
+numpy
+pyarrow

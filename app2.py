@@ -90,7 +90,7 @@ def safe_layout(exclude=('xaxis','yaxis'), **extra):
     return layout
 
 # ─── Google Sheet URL ──────────────────────────────────────────────────────────
-GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1IfhxtNcnHGr4ue1vYDngmRzUdJ02ucPIqjCVHbgL5j8/edit?usp=sharing"
+GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1c_SFKeTPoFWCvF38iNKdI4qbl16BU6sNRqJVj9DsaE4/edit?gid=0#gid=0"
 
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:

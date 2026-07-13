@@ -54,7 +54,7 @@ def safe_layout(**extra):
     d.update(extra)
     return d
 
-GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1c_SFKeTPoFWCvF38iNKdI4qbl16BU6sNRqJVj9DsaE4/edit?gid=0#gid=0"
+GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1IfhxtNcnHGr4ue1vYDngmRzUdJ02ucPIqjCVHbgL5j8/edit?usp=sharing"
 
 with st.sidebar:
     st.markdown("<div style='text-align:center;padding:10px 0 6px'><span style='font-size:42px'>🎓</span><h2 style='color:#c4b5fd;margin:6px 0 2px;font-size:18px;font-weight:800'>Academic Hub</h2><p style='color:#7c6fa0;font-size:12px;margin:0'>Powered by Google Sheets</p></div>", unsafe_allow_html=True)
@@ -197,6 +197,35 @@ try:
             yaxis=dict(title="Department", **{k:v for k,v in YDEF.items()})
         ))
         st.plotly_chart(fig5, key="heatmap")
+
+        st.markdown('<div class="section-header">🏆 Top Students — Highest CGPA</div>', unsafe_allow_html=True)
+        top_n = df.dropna(subset=['sgp']).sort_values('sgp', ascending=False).head(10).reset_index(drop=True)
+        top_n.index += 1
+        top_cols = [c for c in ['Name','programme','college','study year','sgp'] if c in top_n.columns]
+        top_display = top_n[top_cols].rename(columns={'programme':'Department','college':'College','study year':'Year','sgp':'CGPA'})
+
+        medals = {1:"🥇", 2:"🥈", 3:"🥉"}
+        t1, t2, t3 = st.columns(3)
+        for col, idx in zip([t1, t2, t3], [1, 2, 3]):
+            if idx <= len(top_n):
+                row = top_n.iloc[idx-1]
+                dept = row.get('programme', 'N/A')
+                cgpa = f"{row['sgp']:.2f}"
+                name = row.get('Name', 'N/A')
+                col.markdown(
+                    f'<div class="kpi-card">'
+                    f'<div class="kpi-icon">{medals[idx]}</div>'
+                    f'<div class="kpi-label">Rank {idx}</div>'
+                    f'<div class="kpi-value" style="font-size:20px">{name}</div>'
+                    f'<div class="kpi-delta-good">CGPA {cgpa}</div>'
+                    f'<div class="kpi-delta-neutral">{dept}</div>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("##### 📋 Top 10 Students by CGPA")
+        st.dataframe(top_display, use_container_width=True, hide_index=False, height=320)
 
         st.markdown('<div class="section-header">🚨 At-Risk Students (SGPA &lt; 6.0)</div>', unsafe_allow_html=True)
         if not at_risk.empty:

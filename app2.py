@@ -54,7 +54,7 @@ def safe_layout(**extra):
     d.update(extra)
     return d
 
-GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1IfhxtNcnHGr4ue1vYDngmRzUdJ02ucPIqjCVHbgL5j8/edit?usp=sharing"
+GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1c_SFKeTPoFWCvF38iNKdI4qbl16BU6sNRqJVj9DsaE4/edit?gid=0#gid=0"
 
 with st.sidebar:
     st.markdown("<div style='text-align:center;padding:10px 0 6px'><span style='font-size:42px'>🎓</span><h2 style='color:#c4b5fd;margin:6px 0 2px;font-size:18px;font-weight:800'>Academic Hub</h2><p style='color:#7c6fa0;font-size:12px;margin:0'>Powered by Google Sheets</p></div>", unsafe_allow_html=True)

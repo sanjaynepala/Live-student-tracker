@@ -90,7 +90,7 @@ def safe_layout(exclude=('xaxis','yaxis'), **extra):
     return layout
 
 # ─── Google Sheet URL ──────────────────────────────────────────────────────────
-GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1c_SFKeTPoFWCvF38iNKdI4qbl16BU6sNRqJVj9DsaE4/edit?gid=0#gid=0"
+GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1IfhxtNcnHGr4ue1vYDngmRzUdJ02ucPIqjCVHbgL5j8/edit?usp=sharing"
 
 # ─── Sidebar ──────────────────────────────────────────────────────────────────
 with st.sidebar:
@@ -223,7 +223,7 @@ try:
                 marker=dict(line=dict(color='#0d0f1e', width=2))
             )
             fig_pie.update_layout(**CHART_LAYOUT, showlegend=True)
-            st.plotly_chart(fig_pie, width='stretch', key="fig_pie")
+            st.plotly_chart(fig_pie, use_container_width=True, key="fig_pie")
 
         with c2:
             st.markdown("##### 📊 Average SGPA by Department")
@@ -241,7 +241,7 @@ try:
                 xaxis=dict(range=[0,10], title="Avg SGPA", gridcolor="rgba(139,92,246,0.15)", tickfont=dict(color="#c4b5fd", size=12)),
                 yaxis=dict(title="", gridcolor="rgba(139,92,246,0.15)", tickfont=dict(color="#c4b5fd", size=12))
             ))
-            st.plotly_chart(fig_hbar, width='stretch', key="fig_hbar")
+            st.plotly_chart(fig_hbar, use_container_width=True, key="fig_hbar")
 
         # Row 2 — Scatter (SGPA vs Students per dept) + College bar
         c3, c4 = st.columns(2)
@@ -259,7 +259,7 @@ try:
             fig_scatter.add_vline(x=6.0, line_dash="dot", line_color="#f43f5e",
                                   annotation_text="SGPA 6.0", annotation_font_color="#f43f5e")
             fig_scatter.update_layout(**CHART_LAYOUT)
-            st.plotly_chart(fig_scatter, width='stretch', key="fig_scatter")
+            st.plotly_chart(fig_scatter, use_container_width=True, key="fig_scatter")
 
         with c4:
             st.markdown("##### 📊 College SGPA Comparison")
@@ -279,7 +279,7 @@ try:
                 xaxis=dict(title="College", gridcolor="rgba(139,92,246,0.15)", tickfont=dict(color="#c4b5fd", size=12)),
                 yaxis=dict(title="Avg SGPA", range=[0,10], gridcolor="rgba(139,92,246,0.15)", tickfont=dict(color="#c4b5fd", size=12))
             ))
-            st.plotly_chart(fig_college_bar, width='stretch', key="fig_college_bar")
+            st.plotly_chart(fig_college_bar, use_container_width=True, key="fig_college_bar")
 
         # Row 3 — Heatmap dept × college SGPA
         st.markdown('<div class="section-header">🗺️ SGPA Heatmap — Department vs College</div>', unsafe_allow_html=True)
@@ -301,7 +301,7 @@ try:
                 xaxis=dict(title="College", gridcolor="rgba(139,92,246,0.15)", tickfont=dict(color="#c4b5fd", size=12)),
                 yaxis=dict(title="Department", gridcolor="rgba(139,92,246,0.15)", tickfont=dict(color="#c4b5fd", size=12))
             ))
-            st.plotly_chart(fig_heat, width='stretch', key="fig_heat")
+            st.plotly_chart(fig_heat, use_container_width=True, key="fig_heat")
 
         # At-Risk table
         st.markdown('<div class="section-header">🚨 At-Risk Students (SGPA &lt; 6.0)</div>', unsafe_allow_html=True)
@@ -310,7 +310,7 @@ try:
             st.dataframe(
                 at_risk[display_cols].sort_values('sgp')
                   .rename(columns={'programme':'Department','college':'College','sgp':'SGPA'}),
-                hide_index=True, width='stretch', height=280
+                hide_index=True, use_container_width=True, height=280
             )
         else:
             st.success("🎉 No at-risk students! All students have SGPA ≥ 6.0")
@@ -346,7 +346,7 @@ try:
                 xaxis=dict(range=[0,110], title="Pass Rate (%)", gridcolor="rgba(139,92,246,0.15)", tickfont=dict(color="#c4b5fd", size=12)),
                 yaxis=dict(title="", gridcolor="rgba(139,92,246,0.15)", tickfont=dict(color="#c4b5fd", size=12))
             ))
-            st.plotly_chart(fig_pass_bar, width='stretch', key="fig_pass_bar")
+            st.plotly_chart(fig_pass_bar, use_container_width=True, key="fig_pass_bar")
 
         with c2:
             # Pie — pass vs fail overall
@@ -362,7 +362,7 @@ try:
                 marker=dict(line=dict(color='#0d0f1e', width=2))
             )
             fig_pf_pie.update_layout(**CHART_LAYOUT, showlegend=True)
-            st.plotly_chart(fig_pf_pie, width='stretch', key="fig_pf_pie")
+            st.plotly_chart(fig_pf_pie, use_container_width=True, key="fig_pf_pie")
 
         # Bar — pass rate by year
         if not year_summary.empty:
@@ -382,7 +382,7 @@ try:
                 xaxis=dict(title="Study Year", gridcolor="rgba(139,92,246,0.15)", tickfont=dict(color="#c4b5fd", size=12)),
                 yaxis=dict(title="Pass Rate (%)", range=[0,110], gridcolor="rgba(139,92,246,0.15)", tickfont=dict(color="#c4b5fd", size=12))
             ))
-            st.plotly_chart(fig_year_pass, width='stretch', key="fig_year_pass")
+            st.plotly_chart(fig_year_pass, use_container_width=True, key="fig_year_pass")
 
         # Bar — pass rate by college
         st.markdown("##### 📊 Pass Rate by College (%)")
@@ -400,7 +400,7 @@ try:
             xaxis=dict(range=[0,110], title="Pass Rate (%)", gridcolor="rgba(139,92,246,0.15)", tickfont=dict(color="#c4b5fd", size=12)),
             yaxis=dict(title="", gridcolor="rgba(139,92,246,0.15)", tickfont=dict(color="#c4b5fd", size=12))
         ))
-        st.plotly_chart(fig_cpass, width='stretch', key="fig_cpass")
+        st.plotly_chart(fig_cpass, use_container_width=True, key="fig_cpass")
 
     # ══════════════════════════════════════════════════════════════════════════
     #  AVG CAMPUS CGPA
@@ -438,7 +438,7 @@ try:
                 xaxis=dict(range=[0,10], title="Avg CGPA", gridcolor="rgba(139,92,246,0.15)", tickfont=dict(color="#c4b5fd", size=12)),
                 yaxis=dict(title="", gridcolor="rgba(139,92,246,0.15)", tickfont=dict(color="#c4b5fd", size=12))
             ))
-            st.plotly_chart(fig_cgpa_bar, width='stretch', key="fig_cgpa_bar")
+            st.plotly_chart(fig_cgpa_bar, use_container_width=True, key="fig_cgpa_bar")
 
         with c2:
             # Pie — student distribution by CGPA band
@@ -455,7 +455,7 @@ try:
                 marker=dict(line=dict(color='#0d0f1e', width=2))
             )
             fig_band_pie.update_layout(**CHART_LAYOUT, showlegend=True)
-            st.plotly_chart(fig_band_pie, width='stretch', key="fig_band_pie")
+            st.plotly_chart(fig_band_pie, use_container_width=True, key="fig_band_pie")
 
         # Bar — avg CGPA by year
         if not year_summary.empty:
@@ -478,7 +478,7 @@ try:
                 xaxis=dict(title="Study Year", gridcolor="rgba(139,92,246,0.15)", tickfont=dict(color="#c4b5fd", size=12)),
                 yaxis=dict(title="Avg CGPA", range=[0,10], gridcolor="rgba(139,92,246,0.15)", tickfont=dict(color="#c4b5fd", size=12))
             ))
-            st.plotly_chart(fig_year_cgpa, width='stretch', key="fig_year_cgpa")
+            st.plotly_chart(fig_year_cgpa, use_container_width=True, key="fig_year_cgpa")
 
         # Scatter — per-student CGPA scatter
         st.markdown("##### 🔵 Student CGPA Distribution (Scatter)")
@@ -492,7 +492,7 @@ try:
         fig_stu_scatter.add_hline(y=6.0, line_dash="dash", line_color="#f43f5e",
                                   annotation_text="Min 6.0", annotation_font_color="#f43f5e")
         fig_stu_scatter.update_layout(**CHART_LAYOUT)
-        st.plotly_chart(fig_stu_scatter, width='stretch', key="fig_stu_scatter")
+        st.plotly_chart(fig_stu_scatter, use_container_width=True, key="fig_stu_scatter")
 
     # ══════════════════════════════════════════════════════════════════════════
     #  RECORDS
@@ -509,7 +509,7 @@ try:
             st.dataframe(
                 leaderboard.rename(columns={'programme':'Department','avg_sgpa':'Avg SGPA',
                                             'total_students':'Students','pass_rate':'Pass Rate %'}),
-                width='stretch', height=420
+                use_container_width=True, height=420
             )
 
         with right:
@@ -529,7 +529,7 @@ try:
                     display_df = display_df[display_df[regno_col].astype(str).str.contains(search_regno, case=False, na=False)]
                 else:
                     st.warning("⚠️ No redg. no column found. Make sure a column with 'redg' in its name exists.")
-            st.dataframe(display_df, width='stretch', hide_index=True, height=420)
+            st.dataframe(display_df, use_container_width=True, hide_index=True, height=420)
 
 # ─── Error State ──────────────────────────────────────────────────────────────
 except Exception as e:

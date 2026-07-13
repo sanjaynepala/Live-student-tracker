@@ -112,6 +112,10 @@ try:
     npass = int((df['sgp']>=6.0).sum())
     prate = round(npass/N*100,1) if N>0 else 0
     at_risk = df[df['sgp']<6.0]
+    top_student = df.dropna(subset=['sgp']).sort_values('sgp', ascending=False).iloc[0] if not df.dropna(subset=['sgp']).empty else None
+    top_student_name  = top_student['Name'] if top_student is not None and 'Name' in df.columns else "N/A"
+    top_student_cgpa  = f"{top_student['sgp']:.2f}" if top_student is not None else "N/A"
+    top_student_dept  = top_student['programme'] if top_student is not None and 'programme' in df.columns else "N/A" 
     top_row = dept_s.loc[dept_s['avg_sgpa'].idxmax()] if not dept_s.empty else None
     top_dept = top_row['programme'] if top_row is not None else "N/A"
     top_score = f"{top_row['avg_sgpa']:.2f}" if top_row is not None else "0.00"
@@ -128,12 +132,13 @@ try:
 
     # KPIs
     st.markdown('<div class="section-header">📌 Key Performance Indicators</div>', unsafe_allow_html=True)
-    k1,k2,k3,k4,k5 = st.columns(5)
+    k1,k2,k3,k4,k5,k6 = st.columns(6)
     kpi(k1,"🥇","Top Department",    top_dept,              f"SGPA {top_score}","good")
     kpi(k2,"📈","Overall Pass Rate", f"{prate}%",           f"{npass} passed","good")
     kpi(k3,"🎓","Avg Campus CGPA",   f"{gcgpa:.2f}" if not pd.isna(gcgpa) else "N/A", "Across all programmes","neutral")
     kpi(k4,"👥","Total Students",    N,                     f"{df['programme'].nunique()} depts","neutral")
     kpi(k5,"🚨","At-Risk Students",  len(at_risk),          "SGPA below 6.0","bad")
+    kpi(k6,"🌟","Top Student",       top_student_name,      f"CGPA {top_student_cgpa} · {top_student_dept}","good")
     st.markdown("<br>", unsafe_allow_html=True)
 
     # ── OVERVIEW ─────────────────────────────────────────────────────────────

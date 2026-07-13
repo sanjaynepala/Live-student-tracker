@@ -87,12 +87,36 @@ try:
 
     # ── Normalize text columns so case differences (e.g. "cse" vs "CSE") ──────
     # are treated as the same value everywhere (grouping, filters, search, charts)
-    def normalize_text_col(series):
-        return series.astype(str).str.strip().str.upper().replace({'NAN': 'N/A', '': 'N/A'})
+    import re
 
-    for col in ['programme', 'college', 'study year']:
+    def normalize_text_col(series):
+        cleaned = series.astype(str).str.strip().str.upper()
+        cleaned = cleaned.str.replace(r'\s+', ' ', regex=True)   # collapse multiple spaces
+        return cleaned.replace({'NAN': 'N/A', '': 'N/A'})
+
+    # Map every common spelling/format of a study year to one standard label
+    STUDY_YEAR_MAP = {
+        '1': '1ST YEAR', '1ST': '1ST YEAR', '1ST YEAR': '1ST YEAR', 'FIRST': '1ST YEAR',
+        'FIRST YEAR': '1ST YEAR', 'YEAR 1': '1ST YEAR', 'I': '1ST YEAR', 'I YEAR': '1ST YEAR',
+
+        '2': '2ND YEAR', '2ND': '2ND YEAR', '2ND YEAR': '2ND YEAR', 'SECOND': '2ND YEAR',
+        'SECOND YEAR': '2ND YEAR', 'YEAR 2': '2ND YEAR', 'II': '2ND YEAR', 'II YEAR': '2ND YEAR',
+
+        '3': '3RD YEAR', '3RD': '3RD YEAR', '3RD YEAR': '3RD YEAR', 'THIRD': '3RD YEAR',
+        'THIRD YEAR': '3RD YEAR', 'YEAR 3': '3RD YEAR', 'III': '3RD YEAR', 'III YEAR': '3RD YEAR',
+
+        '4': 'FINAL YEAR', '4TH': 'FINAL YEAR', '4TH YEAR': 'FINAL YEAR', 'FOURTH': 'FINAL YEAR',
+        'FOURTH YEAR': 'FINAL YEAR', 'YEAR 4': 'FINAL YEAR', 'IV': 'FINAL YEAR', 'IV YEAR': 'FINAL YEAR',
+        'FINAL': 'FINAL YEAR', 'FINAL YEAR': 'FINAL YEAR', 'FINALYEAR': 'FINAL YEAR',
+    }
+
+    for col in ['programme', 'college']:
         if col in df.columns:
             df[col] = normalize_text_col(df[col])
+
+    if 'study year' in df.columns:
+        df['study year'] = normalize_text_col(df['study year'])
+        df['study year'] = df['study year'].map(lambda v: STUDY_YEAR_MAP.get(v, v))
 
     if 'Name' in df.columns:
         df['Name'] = df['Name'].astype(str).str.strip().str.title()
@@ -111,13 +135,19 @@ try:
     ).reset_index()
     coll_s['pass_rate'] = (coll_s['pass_count']/coll_s['total_students']*100).round(1)
 
+    YEAR_ORDER = ['1ST YEAR', '2ND YEAR', '3RD YEAR', 'FINAL YEAR']
+
+    def year_sort_key(y):
+        return YEAR_ORDER.index(y) if y in YEAR_ORDER else len(YEAR_ORDER)
+
     year_s = pd.DataFrame()
     if 'study year' in df.columns:
         year_s = df.groupby('study year').agg(
             avg_sgpa=('sgp','mean'),
             pass_rate=('sgp', lambda x: round((x>=6.0).sum()/len(x)*100,1)),
             total=('Name','count')
-        ).reset_index().sort_values('study year')
+        ).reset_index()
+        year_s = year_s.iloc[year_s['study year'].map(year_sort_key).argsort()]
 
     N = len(df)
     gcgpa = df['sgp'].mean()
@@ -133,7 +163,7 @@ try:
     top_score = f"{top_row['avg_sgpa']:.2f}" if top_row is not None else "0.00"
 
     with filter_ph.container():
-        all_years = ["All Years"] + sorted(df['study year'].dropna().unique().tolist())
+        all_years = ["All Years"] + sorted(df['study year'].dropna().unique().tolist(), key=year_sort_key)
         all_depts = ["All Departments"] + sorted(df['programme'].dropna().unique().tolist())
         sel_year = st.selectbox("Study Year", all_years)
         sel_dept = st.selectbox("Department", all_depts)

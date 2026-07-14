@@ -204,42 +204,14 @@ try:
             ))
             st.plotly_chart(fig2, key="bar_dept_cgpa")
 
-        c3,c4 = st.columns(2)
-        with c3:
-            st.markdown("##### 🔵 CGPA vs Student Count (Scatter)")
-            fig3 = px.scatter(dept_s_f, x='avg_sgpa', y='total_students', size='total_students',
-                color='programme', text='programme', color_discrete_sequence=ACCENT, size_max=50,
-                labels={'avg_sgpa':'Avg CGPA','total_students':'No. of Students'})
-            fig3.update_traces(textposition='top center', textfont=dict(color="#e2e8f0",size=11), marker=dict(opacity=0.85, line=dict(width=2,color='#0d0f1e')))
-            fig3.add_vline(x=6.0, line_dash="dot", line_color="#f43f5e", annotation_text="CGPA 6.0", annotation_font_color="#f43f5e")
-            fig3.update_layout(**base_layout())
-            st.plotly_chart(fig3, key="scatter_dept")
-
-        with c4:
-            st.markdown("##### 📊 College CGPA Comparison")
-            fig4 = go.Figure(go.Bar(x=coll_s_f['college'], y=coll_s_f['avg_sgpa'],
-                marker=dict(color=ACCENT[:len(coll_s_f)], line=dict(width=0)),
-                text=[f"{v:.2f}" for v in coll_s_f['avg_sgpa']], textposition='outside', textfont=dict(color="#e2e8f0",size=13)))
-            fig4.add_hline(y=6.0, line_dash="dash", line_color="#f43f5e", annotation_text="Min 6.0", annotation_font_color="#f43f5e")
-            fig4.add_hline(y=coll_s_f['avg_sgpa'].mean(), line_dash="dot", line_color="#f59e0b",
-                annotation_text=f"Avg {coll_s_f['avg_sgpa'].mean():.2f}", annotation_font_color="#f59e0b", annotation_position="top right")
-            fig4.update_layout(**safe_layout(
-                xaxis=dict(title="College", **{k:v for k,v in XDEF.items()}),
-                yaxis=dict(title="Avg CGPA", range=[0,10], **{k:v for k,v in YDEF.items()})
-            ))
-            st.plotly_chart(fig4, key="bar_college_cgpa")
-
-        st.markdown('<div class="section-header">🗺️ CGPA Heatmap — Department vs College</div>', unsafe_allow_html=True)
-        heat = fdf.groupby(['programme','college'])['sgp'].mean().unstack(fill_value=0).round(2)
-        fig5 = go.Figure(go.Heatmap(z=heat.values, x=heat.columns.tolist(), y=heat.index.tolist(),
-            colorscale=[[0,"#f43f5e"],[0.5,"#f59e0b"],[1,"#10b981"]],
-            text=heat.values.round(2), texttemplate="%{text}", textfont=dict(color="#fff",size=12),
-            colorbar=dict(tickfont=dict(color="#c4b5fd"), title=dict(text="CGPA", font=dict(color="#c4b5fd")))))
-        fig5.update_layout(**safe_layout(
-            xaxis=dict(title="College", **{k:v for k,v in XDEF.items()}),
-            yaxis=dict(title="Department", **{k:v for k,v in YDEF.items()})
-        ))
-        st.plotly_chart(fig5, key="heatmap")
+        st.markdown("##### 🔵 CGPA vs Student Count (Scatter)")
+        fig3 = px.scatter(dept_s_f, x='avg_sgpa', y='total_students', size='total_students',
+            color='programme', text='programme', color_discrete_sequence=ACCENT, size_max=50,
+            labels={'avg_sgpa':'Avg CGPA','total_students':'No. of Students'})
+        fig3.update_traces(textposition='top center', textfont=dict(color="#e2e8f0",size=11), marker=dict(opacity=0.85, line=dict(width=2,color='#0d0f1e')))
+        fig3.add_vline(x=6.0, line_dash="dot", line_color="#f43f5e", annotation_text="CGPA 6.0", annotation_font_color="#f43f5e")
+        fig3.update_layout(**base_layout())
+        st.plotly_chart(fig3, key="scatter_dept")
 
         st.markdown('<div class="section-header">🏆 Top Students — Highest CGPA</div>', unsafe_allow_html=True)
         top_n = fdf.dropna(subset=['sgp']).sort_values('sgp', ascending=False).head(10).reset_index(drop=True)
@@ -321,30 +293,12 @@ try:
             low_row['programme'] if low_row is not None else "N/A","bad")
         st.markdown("<br>", unsafe_allow_html=True)
 
-        c1,c2 = st.columns(2)
-        with c1:
-            st.markdown("##### 📊 Avg CGPA by Department")
-            sc = dept_s_f.sort_values('avg_sgpa', ascending=True)
-            fig = go.Figure(go.Bar(y=sc['programme'], x=sc['avg_sgpa'], orientation='h',
-                marker=dict(color=sc['avg_sgpa'], colorscale=[[0,"#f43f5e"],[0.5,"#f59e0b"],[1,"#10b981"]], line=dict(width=0)),
-                text=[f"  {v:.2f}" for v in sc['avg_sgpa']], textposition='outside', textfont=dict(color="#e2e8f0",size=13)))
-            fig.add_vline(x=gcgpa_f, line_dash="dot", line_color="#a78bfa", annotation_text=f"Campus Avg {gcgpa_f:.2f}", annotation_font_color="#a78bfa")
-            fig.add_vline(x=6.0, line_dash="dash", line_color="#f43f5e", annotation_text="Min 6.0", annotation_font_color="#f43f5e")
-            fig.update_layout(**safe_layout(
-                xaxis=dict(range=[0,10], title="Avg CGPA", **{k:v for k,v in XDEF.items()}),
-                yaxis=dict(title="", **{k:v for k,v in YDEF.items()})
-            ))
-            st.plotly_chart(fig, key="bar_cgpa_dept")
-
-        with c2:
-            st.markdown("##### 🔵 Student CGPA Distribution (Scatter)")
-            fig2 = px.scatter(fdf.dropna(subset=['sgp']), x='programme', y='sgp',
-                color='sgp', color_continuous_scale=[[0,"#f43f5e"],[0.5,"#f59e0b"],[1,"#10b981"]],
-                labels={'sgp':'CGPA','programme':'Department'},
-                hover_data=['Name'] if 'Name' in fdf.columns else None, opacity=0.75)
-            fig2.add_hline(y=6.0, line_dash="dash", line_color="#f43f5e", annotation_text="Min 6.0", annotation_font_color="#f43f5e")
-            fig2.update_layout(**base_layout())
-            st.plotly_chart(fig2, key="scatter_cgpa")
+        st.markdown("##### 🥧 Avg CGPA by Department")
+        fig = px.pie(dept_s_f, values='avg_sgpa', names='programme', color_discrete_sequence=ACCENT)
+        # using label+value so the chart shows the actual calculated average instead of a combined percentage
+        fig.update_traces(textposition='inside', textinfo='label+value', textfont=dict(size=12,color="#fff"), marker=dict(line=dict(color='#0d0f1e',width=2)))
+        fig.update_layout(**base_layout(showlegend=True))
+        st.plotly_chart(fig, key="pie_cgpa_dept")
 
         if not year_s_f.empty:
             st.markdown("##### 📊 Avg CGPA by Study Year")

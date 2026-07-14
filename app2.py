@@ -349,4 +349,4 @@ try:
 
         st.markdown("##### 🥧 Avg CGPA by Department")
         fig = px.pie(dept_s_f, values='avg_sgpa', names='programme', color_discrete_sequence=ACCENT)
-        fig.update_traces(textposition='inside', textinfo='label+value', textfont=dict(size=12,color="#fff"), marker=dict(line=dict(
+       fig.update_traces(textposition='inside', textinfo='label+value', textfont=dict(size=12,color="#fff"), marker=dict(line=dict(color='#0d0f1e', width=2)))

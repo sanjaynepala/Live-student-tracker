@@ -349,4 +349,48 @@ try:
 
         st.markdown("##### 🥧 Avg CGPA by Department")
         fig = px.pie(dept_s_f, values='avg_sgpa', names='programme', color_discrete_sequence=ACCENT)
-       fig.update_traces(textposition='inside', textinfo='label+value', textfont=dict(size=12,color="#fff"), marker=dict(line=dict(color='#0d0f1e', width=2)))
+        fig.update_traces(textposition='inside', textinfo='label+value', textfont=dict(size=12,color="#fff"), marker=dict(line=dict(color='#0d0f1e',width=2)))
+        fig.update_layout(**base_layout(showlegend=True))
+        st.plotly_chart(fig, key="pie_cgpa_dept")
+
+        if not year_s_f.empty:
+            st.markdown("##### 📊 Avg CGPA by Study Year")
+            fig3 = go.Figure(go.Bar(x=year_s_f['study year'].astype(str), y=year_s_f['avg_sgpa'],
+                marker=dict(color=year_s_f['avg_sgpa'], colorscale=[[0,"#f43f5e"],[0.5,"#f59e0b"],[1,"#10b981"]], line=dict(width=0)),
+                text=[f"{v:.2f}" for v in year_s_f['avg_sgpa']], textposition='outside', textfont=dict(color="#e2e8f0",size=13)))
+            fig3.add_hline(y=gcgpa_f, line_dash="dot", line_color="#a78bfa", annotation_text=f"Overall Avg {gcgpa_f:.2f}", annotation_font_color="#a78bfa")
+            fig3.add_hline(y=6.0, line_dash="dash", line_color="#f43f5e", annotation_text="Min 6.0", annotation_font_color="#f43f5e")
+            fig3.update_layout(**safe_layout(
+                xaxis=dict(title="Study Year", **{k:v for k,v in XDEF.items()}),
+                yaxis=dict(title="Avg CGPA", range=[0,10], **{k:v for k,v in YDEF.items()})
+            ))
+            st.plotly_chart(fig3, key="bar_cgpa_year")
+
+    # ── RECORDS ───────────────────────────────────────────────────────────────
+    elif selected_view == "📋 Records":
+        st.markdown('<div class="section-header">📋 Master Records & Department Rankings</div>', unsafe_allow_html=True)
+        left, right = st.columns([1,2])
+
+        with left:
+            st.markdown("##### 🏆 Department Leaderboard")
+            lb = dept_s_f[['programme','avg_sgpa','total_students','pass_rate']].sort_values('avg_sgpa', ascending=False).reset_index(drop=True)
+            lb.index += 1
+            st.dataframe(lb.rename(columns={'programme':'Department','avg_sgpa':'Avg CGPA','total_students':'Students','pass_rate':'Pass Rate %'}), use_container_width=True, height=420)
+
+        with right:
+            st.markdown("##### 📂 Full Student Registry")
+            s1,s2 = st.columns(2)
+            with s1: sname  = st.text_input("🔍 Search by Name",     placeholder="Type student name…")
+            with s2: sregno = st.text_input("🔢 Search by Redg. No", placeholder="Type redg. no…")
+            ddf = fdf.copy()
+            if sname:  ddf = ddf[ddf['Name'].str.contains(sname, case=False, na=False)]
+            if sregno:
+                rc = next((c for c in fdf.columns if 'redg' in c.lower()), None)
+                if rc: ddf = ddf[ddf[rc].astype(str).str.contains(sregno, case=False, na=False)]
+                else:  st.warning("⚠️ No redg. no column found.")
+            st.dataframe(ddf, use_container_width=True, hide_index=True, height=420)
+
+except Exception as e:
+    st.markdown('<div style="background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.4);border-radius:18px;padding:36px;text-align:center;margin-top:40px"><div style="font-size:52px">🔌</div><h2 style="color:#fca5a5;margin:16px 0 8px;font-size:22px">Connection Failed</h2><p style="color:#f87171;font-size:15px">Unable to reach the Google Sheet.</p></div>', unsafe_allow_html=True)
+    with st.expander("🔍 Error Details"):
+        st.code(str(e))

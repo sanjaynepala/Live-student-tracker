@@ -53,7 +53,7 @@ def safe_layout(**extra):
     d.update(extra)
     return d
 
-GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1c_SFKeTPoFWCvF38iNKdI4qbl16BU6sNRqJVj9DsaE4/edit?gid=0#gid=0"
+GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1zvtrtkl1SFnA2HG8ndWq_7BHwV8T5MGcES6IACNTFEQ/edit?usp=sharing"
 
 with st.sidebar:
     st.markdown("<div style='text-align:center;padding:10px 0 6px'><span style='font-size:42px'>🎓</span><h2 style='color:#c4b5fd;margin:6px 0 2px;font-size:18px;font-weight:800'>Academic Hub</h2><p style='color:#7c6fa0;font-size:12px;margin:0'>Powered by Google Sheets</p></div>", unsafe_allow_html=True)
@@ -79,10 +79,14 @@ try:
         df = conn.read(spreadsheet=GOOGLE_SHEET_URL, ttl=60)
 
     df.columns = [c.strip() for c in df.columns]
-    df['sgp'] = pd.to_numeric(df['sgp'], errors='coerce')
+    df['overall sgp'] = pd.to_numeric(df['overall sgp'], errors='coerce')
     if 'college' not in df.columns:
         df['college'] = 'N/A'
     df['college'] = df['college'].fillna('N/A').astype(str).str.strip()
+
+    # Normalize result column (Pass/Fail) if it exists
+    if 'result' in df.columns:
+        df['result'] = df['result'].fillna('N/A').astype(str).str.strip().str.upper()
 
     import re
     def normalize_text_col(series):
@@ -117,6 +121,9 @@ try:
     def year_sort_key(y):
         return YEAR_ORDER.index(y) if y in YEAR_ORDER else len(YEAR_ORDER)
 
+    # Registration-number column (used for Records sorting/search)
+    REDG_COL = next((c for c in df.columns if 'redg' in c.lower()), None)
+
     # ── Sidebar Filters ────────────────────────────────────────────────────────
     with filter_ph.container():
         all_years_unique = sorted(df['study year'].dropna().unique().tolist(), key=year_sort_key)
@@ -133,36 +140,42 @@ try:
     # Aggregations on filtered data
     dept_s_f = fdf.groupby('programme').agg(
         total_students=('Name','count'),
-        avg_sgpa=('sgp','mean'),
-        pass_count=('sgp', lambda x: (x>=6.0).sum())
+        avg_sgpa=('overall sgp','mean'),
+        pass_count=('overall sgp', lambda x: (x>=6.0).sum())
     ).reset_index()
     dept_s_f['pass_rate'] = (dept_s_f['pass_count']/dept_s_f['total_students']*100).round(1)
 
     coll_s_f = fdf.groupby('college').agg(
         total_students=('Name','count'),
-        avg_sgpa=('sgp','mean'),
-        pass_count=('sgp', lambda x: (x>=6.0).sum())
+        avg_sgpa=('overall sgp','mean'),
+        pass_count=('overall sgp', lambda x: (x>=6.0).sum())
     ).reset_index()
     coll_s_f['pass_rate'] = (coll_s_f['pass_count']/coll_s_f['total_students']*100).round(1)
 
     year_s_f = pd.DataFrame()
     if 'study year' in fdf.columns:
         year_s_f = fdf.groupby('study year').agg(
-            avg_sgpa=('sgp','mean'),
-            pass_rate=('sgp', lambda x: round((x>=6.0).sum()/len(x)*100,1)),
+            avg_sgpa=('overall sgp','mean'),
+            pass_rate=('overall sgp', lambda x: round((x>=6.0).sum()/len(x)*100,1)),
             total=('Name','count')
         ).reset_index()
         year_s_f = year_s_f.iloc[year_s_f['study year'].map(year_sort_key).argsort()]
 
     # Filtered statistics
     N_f = len(fdf)
-    gcgpa_f = fdf['sgp'].mean()
-    npass_f = int((fdf['sgp']>=6.0).sum())
+    gcgpa_f = fdf['overall sgp'].mean()
+    npass_f = int((fdf['overall sgp']>=6.0).sum())
     prate_f = round(npass_f/N_f*100,1) if N_f>0 else 0
-    at_risk_f = fdf[fdf['sgp']<6.0]
-    top_student_f = fdf.dropna(subset=['sgp']).sort_values('sgp', ascending=False).iloc[0] if not fdf.dropna(subset=['sgp']).empty else None
+
+    # At-Risk Students: derived from the 'result' column (Fail) instead of CGPA
+    if 'result' in fdf.columns:
+        at_risk_f = fdf[fdf['result'].astype(str).str.upper().str.contains('FAIL', na=False)]
+    else:
+        at_risk_f = fdf[fdf['overall sgp']<6.0]
+
+    top_student_f = fdf.dropna(subset=['overall sgp']).sort_values('overall sgp', ascending=False).iloc[0] if not fdf.dropna(subset=['overall sgp']).empty else None
     top_student_name_f  = top_student_f['Name'] if top_student_f is not None and 'Name' in fdf.columns else "N/A"
-    top_student_cgpa_f  = f"{top_student_f['sgp']:.2f}" if top_student_f is not None else "N/A"
+    top_student_cgpa_f  = f"{top_student_f['overall sgp']:.2f}" if top_student_f is not None else "N/A"
     top_student_dept_f  = top_student_f['programme'] if top_student_f is not None and 'programme' in fdf.columns else "N/A" 
     top_row_f = dept_s_f.loc[dept_s_f['avg_sgpa'].idxmax()] if not dept_s_f.empty else None
     top_dept_f = top_row_f['programme'] if top_row_f is not None else "N/A"
@@ -175,7 +188,7 @@ try:
     kpi(k2,"📈","Overall Pass Rate", f"{prate_f}%",           f"{npass_f} passed","good")
     kpi(k3,"🎓","Avg Campus CGPA",   f"{gcgpa_f:.2f}" if not pd.isna(gcgpa_f) else "N/A", "Across all programmes","neutral")
     kpi(k4,"👥","Total Students",    N_f,                     f"{fdf['programme'].nunique()} depts","neutral")
-    kpi(k5,"🚨","At-Risk Students",  len(at_risk_f),          "CGPA below 6.0","bad")
+    kpi(k5,"🚨","At-Risk Students",  len(at_risk_f),          "Result: Fail","bad")
     kpi(k6,"🌟","Top Student",       top_student_name_f,      f"CGPA {top_student_cgpa_f} · {top_student_dept_f}","good")
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -204,48 +217,20 @@ try:
             ))
             st.plotly_chart(fig2, key="bar_dept_cgpa")
 
-        c3,c4 = st.columns(2)
-        with c3:
-            st.markdown("##### 🔵 CGPA vs Student Count (Scatter)")
-            fig3 = px.scatter(dept_s_f, x='avg_sgpa', y='total_students', size='total_students',
-                color='programme', text='programme', color_discrete_sequence=ACCENT, size_max=50,
-                labels={'avg_sgpa':'Avg CGPA','total_students':'No. of Students'})
-            fig3.update_traces(textposition='top center', textfont=dict(color="#e2e8f0",size=11), marker=dict(opacity=0.85, line=dict(width=2,color='#0d0f1e')))
-            fig3.add_vline(x=6.0, line_dash="dot", line_color="#f43f5e", annotation_text="CGPA 6.0", annotation_font_color="#f43f5e")
-            fig3.update_layout(**base_layout())
-            st.plotly_chart(fig3, key="scatter_dept")
-
-        with c4:
-            st.markdown("##### 📊 College CGPA Comparison")
-            fig4 = go.Figure(go.Bar(x=coll_s_f['college'], y=coll_s_f['avg_sgpa'],
-                marker=dict(color=ACCENT[:len(coll_s_f)], line=dict(width=0)),
-                text=[f"{v:.2f}" for v in coll_s_f['avg_sgpa']], textposition='outside', textfont=dict(color="#e2e8f0",size=13)))
-            fig4.add_hline(y=6.0, line_dash="dash", line_color="#f43f5e", annotation_text="Min 6.0", annotation_font_color="#f43f5e")
-            fig4.add_hline(y=coll_s_f['avg_sgpa'].mean(), line_dash="dot", line_color="#f59e0b",
-                annotation_text=f"Avg {coll_s_f['avg_sgpa'].mean():.2f}", annotation_font_color="#f59e0b", annotation_position="top right")
-            fig4.update_layout(**safe_layout(
-                xaxis=dict(title="College", **{k:v for k,v in XDEF.items()}),
-                yaxis=dict(title="Avg CGPA", range=[0,10], **{k:v for k,v in YDEF.items()})
-            ))
-            st.plotly_chart(fig4, key="bar_college_cgpa")
-
-        st.markdown('<div class="section-header">🗺️ CGPA Heatmap — Department vs College</div>', unsafe_allow_html=True)
-        heat = fdf.groupby(['programme','college'])['sgp'].mean().unstack(fill_value=0).round(2)
-        fig5 = go.Figure(go.Heatmap(z=heat.values, x=heat.columns.tolist(), y=heat.index.tolist(),
-            colorscale=[[0,"#f43f5e"],[0.5,"#f59e0b"],[1,"#10b981"]],
-            text=heat.values.round(2), texttemplate="%{text}", textfont=dict(color="#fff",size=12),
-            colorbar=dict(tickfont=dict(color="#c4b5fd"), title=dict(text="CGPA", font=dict(color="#c4b5fd")))))
-        fig5.update_layout(**safe_layout(
-            xaxis=dict(title="College", **{k:v for k,v in XDEF.items()}),
-            yaxis=dict(title="Department", **{k:v for k,v in YDEF.items()})
-        ))
-        st.plotly_chart(fig5, key="heatmap")
+        st.markdown("##### 🔵 CGPA vs Student Count (Scatter)")
+        fig3 = px.scatter(dept_s_f, x='avg_sgpa', y='total_students', size='total_students',
+            color='programme', text='programme', color_discrete_sequence=ACCENT, size_max=50,
+            labels={'avg_sgpa':'Avg CGPA','total_students':'No. of Students'})
+        fig3.update_traces(textposition='top center', textfont=dict(color="#e2e8f0",size=11), marker=dict(opacity=0.85, line=dict(width=2,color='#0d0f1e')))
+        fig3.add_vline(x=6.0, line_dash="dot", line_color="#f43f5e", annotation_text="CGPA 6.0", annotation_font_color="#f43f5e")
+        fig3.update_layout(**base_layout())
+        st.plotly_chart(fig3, key="scatter_dept")
 
         st.markdown('<div class="section-header">🏆 Top Students — Highest CGPA</div>', unsafe_allow_html=True)
-        top_n = fdf.dropna(subset=['sgp']).sort_values('sgp', ascending=False).head(10).reset_index(drop=True)
+        top_n = fdf.dropna(subset=['overall sgp']).sort_values('overall sgp', ascending=False).head(10).reset_index(drop=True)
         top_n.index += 1
-        top_cols = [c for c in ['Name','programme','college','study year','sgp'] if c in top_n.columns]
-        top_display = top_n[top_cols].rename(columns={'programme':'Department','college':'College','study year':'Year','sgp':'CGPA'})
+        top_cols = [c for c in ['Name','programme','college','study year','overall sgp'] if c in top_n.columns]
+        top_display = top_n[top_cols].rename(columns={'programme':'Department','college':'College','study year':'Year','overall sgp':'CGPA'})
 
         medals = {1:"🥇", 2:"🥈", 3:"🥉"}
         t1, t2, t3 = st.columns(3)
@@ -253,7 +238,7 @@ try:
             if idx <= len(top_n):
                 row = top_n.iloc[idx-1]
                 dept = row.get('programme', 'N/A')
-                cgpa = f"{row['sgp']:.2f}"
+                cgpa = f"{row['overall sgp']:.2f}"
                 name = row.get('Name', 'N/A')
                 col.markdown(f'<div class="kpi-card"><div class="kpi-icon">{medals[idx]}</div><div class="kpi-label">Rank {idx}</div><div class="kpi-value" style="font-size:20px">{name}</div><div class="kpi-delta-good">CGPA {cgpa}</div><div class="kpi-delta-neutral">{dept}</div></div>', unsafe_allow_html=True)
 
@@ -261,12 +246,12 @@ try:
         st.markdown("##### 📋 Top 10 Students by CGPA")
         st.dataframe(top_display, use_container_width=True, hide_index=False, height=320)
 
-        st.markdown('<div class="section-header">🚨 At-Risk Students (CGPA &lt; 6.0)</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-header">🚨 At-Risk Students (Result: Fail)</div>', unsafe_allow_html=True)
         if not at_risk_f.empty:
-            cols = [c for c in ['Name','programme','college','sgp'] if c in at_risk_f.columns]
-            st.dataframe(at_risk_f[cols].sort_values('sgp').rename(columns={'programme':'Department','college':'College','sgp':'CGPA'}), hide_index=True, use_container_width=True, height=280)
+            cols = [c for c in ['Name','programme','college','result','overall sgp'] if c in at_risk_f.columns]
+            st.dataframe(at_risk_f[cols].sort_values('overall sgp').rename(columns={'programme':'Department','college':'College','result':'Result','overall sgp':'CGPA'}), hide_index=True, use_container_width=True, height=280)
         else:
-            st.success("🎉 No at-risk students! All students have CGPA ≥ 6.0")
+            st.success("🎉 No at-risk students! All students have Result = Pass")
 
     # ── PASS RATE ─────────────────────────────────────────────────────────────
     elif selected_view == "📈 Overall Pass Rate":
@@ -338,9 +323,9 @@ try:
 
         with c2:
             st.markdown("##### 🔵 Student CGPA Distribution (Scatter)")
-            fig2 = px.scatter(fdf.dropna(subset=['sgp']), x='programme', y='sgp',
-                color='sgp', color_continuous_scale=[[0,"#f43f5e"],[0.5,"#f59e0b"],[1,"#10b981"]],
-                labels={'sgp':'CGPA','programme':'Department'},
+            fig2 = px.scatter(fdf.dropna(subset=['overall sgp']), x='programme', y='overall sgp',
+                color='overall sgp', color_continuous_scale=[[0,"#f43f5e"],[0.5,"#f59e0b"],[1,"#10b981"]],
+                labels={'overall sgp':'CGPA','programme':'Department'},
                 hover_data=['Name'] if 'Name' in fdf.columns else None, opacity=0.75)
             fig2.add_hline(y=6.0, line_dash="dash", line_color="#f43f5e", annotation_text="Min 6.0", annotation_font_color="#f43f5e")
             fig2.update_layout(**base_layout())
@@ -378,9 +363,11 @@ try:
             ddf = fdf.copy()
             if sname:  ddf = ddf[ddf['Name'].str.contains(sname, case=False, na=False)]
             if sregno:
-                rc = next((c for c in fdf.columns if 'redg' in c.lower()), None)
-                if rc: ddf = ddf[ddf[rc].astype(str).str.contains(sregno, case=False, na=False)]
-                else:  st.warning("⚠️ No redg. no column found.")
+                if REDG_COL: ddf = ddf[ddf[REDG_COL].astype(str).str.contains(sregno, case=False, na=False)]
+                else:        st.warning("⚠️ No redg. no column found.")
+            # When a specific department is selected, sort the registry by Redg. No.
+            if sel_dept != "All Departments" and REDG_COL:
+                ddf = ddf.sort_values(REDG_COL, na_position='last')
             st.dataframe(ddf, use_container_width=True, hide_index=True, height=420)
 
 except Exception as e:

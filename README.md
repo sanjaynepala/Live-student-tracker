@@ -1,46 +1,25 @@
-🎓 University Academic Command Center
-A real-time academic analytics dashboard built with Python & Streamlit, connected live to Google Sheets.
+🎓 Academic Command Center
+
+A real-time Streamlit dashboard that connects to a live Google Sheet to track student CGPA, pass rates, and departmental performance across a university campus.
 
 🔗 Live App: https://live-student-tracker-kzxsmllzw6ojiyrbihvhtv.streamlit.app/
 
-📌 Overview:-
-This dashboard gives faculty and administrators a single unified view of student academic performance (SGPA/CGPA) across departments and colleges — with interactive charts, 
-live KPIs, and a searchable student registry. Data syncs automatically every 60 seconds from a connected Google Sheet.
+
+✨ Features
 
 
-🚀 Features
+📊 Overview — Enrollment by department, avg CGPA by department, CGPA vs. student-count scatter, top 10 students, and at-risk students (based on Result = Fail).
+📈 Overall Pass Rate — Pass/fail distribution, pass rate by department and by study year, with a 75% target line.
+🎓 Avg Campus CGPA — Campus-wide, department-wise, and year-wise CGPA breakdowns.
+📋 Records — Department leaderboard + searchable, filterable full student registry (auto-sorted by Redg. No. when a department is selected).
+Live sync — Refreshes from Google Sheets every 60 seconds.
+Filters — Study Year and Department, applied globally across all views.
 
-- **Live Google Sheets sync** — no manual uploads, data refreshes every 60 seconds
-- **4 navigation pages** — Overview, Overall Pass Rate, Avg Campus CGPA, Records
-- **5 KPI cards** — Top Department, Overall Pass Rate, Avg Campus CGPA, Total Students, At-Risk count
-- **Interactive charts** — Bar, Pie, Scatter, Heatmap
-- **Student search** — search by Name or Registration Number
-- **At-risk detection** — automatically flags students with SGPA below 6.0
 
-🗂️ Navigation
+🗂️ Data Source
 
-| Page | Description |
-|---|---|
-| 📊 Overview | Department & college charts, SGPA heatmap, at-risk student list |
-| 📈 Overall Pass Rate | Pass/fail breakdown by department, college, and study year |
-| 🎓 Avg Campus CGPA | CGPA analysis by department, year, and CGPA band |
-| 📋 Records | Department leaderboard and searchable student registry |
-
- 📊 Charts Used
-
-| Chart Type | Used For |
-|---|---|
-| Bar Chart | SGPA by dept, pass rate by dept/college/year, CGPA by dept/year |
-| Pie Chart | Enrollment by dept/college, pass vs fail, CGPA bands |
-| Scatter Plot | SGPA vs student count per dept, per-student CGPA distribution |
-| Heatmap | SGPA across department × college grid |
+Reads directly from a connected Google Sheet via streamlit-gsheets. Required columns are documented in table_column.txt — key ones include Name, programme, college, overall sgp, study year, result, and a registration-number column (any header containing "redg").
 
 🛠️ Tech Stack
 
-| Tool | Purpose |
-|---|---|
-| Python | Core language |
-| Streamlit | Web app framework |
-| Plotly | Interactive charts |
-| Pandas | Data processing |
-| streamlit-gsheets-connection | Live Google Sheets connection |
+ComponentToolUI / App frameworkStreamlitData sourceGoogle Sheets (streamlit-gsheets)Data handlingPandasChartsPlotly (Express & Graph Objects)

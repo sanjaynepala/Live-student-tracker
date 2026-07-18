@@ -17,13 +17,13 @@ st.markdown("""
 .stApp { background: linear-gradient(135deg, #0d0f1e 0%, #111827 40%, #1a0a2e 100%); font-family: 'Inter', sans-serif; }
 [data-testid="stSidebar"] { background: linear-gradient(180deg, #12102b 0%, #0e0c22 100%); border-right: 1px solid rgba(139,92,246,0.3); }
 [data-testid="stSidebar"] * { color: #e2e8f0 !important; }
-.kpi-card { background: linear-gradient(135deg, rgba(139,92,246,0.15) 0%, rgba(59,130,246,0.1) 100%); border: 1px solid rgba(139,92,246,0.4); border-radius: 18px; padding: 22px 18px; text-align: center; backdrop-filter: blur(8px); margin-bottom: 8px; }
-.kpi-icon { font-size: 26px; margin-bottom: 6px; }
-.kpi-label { font-size: 11px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: #a78bfa; margin-bottom: 10px; }
-.kpi-value { font-size: 30px; font-weight: 800; color: #ffffff; line-height: 1.1; }
-.kpi-delta-good    { font-size: 12px; color: #34d399; margin-top: 8px; font-weight: 600; }
-.kpi-delta-bad     { font-size: 12px; color: #f87171; margin-top: 8px; font-weight: 600; }
-.kpi-delta-neutral { font-size: 12px; color: #94a3b8; margin-top: 8px; font-weight: 600; }
+.kpi-card { background: linear-gradient(135deg, rgba(139,92,246,0.15) 0%, rgba(59,130,246,0.1) 100%); border: 1px solid rgba(139,92,246,0.4); border-radius: 12px; padding: 14px 12px; text-align: center; backdrop-filter: blur(8px); margin-bottom: 6px; }
+.kpi-icon { font-size: 22px; margin-bottom: 4px; }
+.kpi-label { font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #a78bfa; margin-bottom: 6px; }
+.kpi-value { font-size: 22px; font-weight: 800; color: #ffffff; line-height: 1.1; }
+.kpi-delta-good    { font-size: 11px; color: #34d399; margin-top: 4px; font-weight: 600; }
+.kpi-delta-bad     { font-size: 11px; color: #f87171; margin-top: 4px; font-weight: 600; }
+.kpi-delta-neutral { font-size: 11px; color: #94a3b8; margin-top: 4px; font-weight: 600; }
 .section-header { font-size: 19px; font-weight: 800; color: #e2e8f0; border-left: 5px solid #8b5cf6; padding-left: 14px; margin: 28px 0 18px; }
 h5, .element-container h5 { color: #c4b5fd !important; font-size: 15px !important; font-weight: 700 !important; }
 .stSelectbox > div > div { background: rgba(139,92,246,0.12); border: 1px solid rgba(139,92,246,0.4); border-radius: 10px; }
@@ -53,7 +53,7 @@ def safe_layout(**extra):
     d.update(extra)
     return d
 
-GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/17Pl6zv1vg2khQzACApBrNlIUB7ij0bc-LLAigwAhPEc/edit?usp=sharing"
+GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/17Pl6zv1vg2khQzACApBrNlIUB7ij0bc-LLAigwAhPEc/edit?resourcekey=&gid=1753095568#gid=1753095568"
 
 with st.sidebar:
     st.markdown("<div style='text-align:center;padding:10px 0 6px'><span style='font-size:42px'>🎓</span><h2 style='color:#c4b5fd;margin:6px 0 2px;font-size:18px;font-weight:800'>Academic Hub</h2><p style='color:#7c6fa0;font-size:12px;margin:0'>Powered by Google Sheets</p></div>", unsafe_allow_html=True)
@@ -84,6 +84,26 @@ try:
     
     df.columns = [c.strip() for c in df.columns]
     df['overall sgp'] = pd.to_numeric(df['overall sgp'], errors='coerce')
+    
+    # Calculate overall SGP from semester CGPAs if missing
+    # Detect semester CGPA columns (sem1_cgpa, sem2_cgpa, s1_cgpa, sem1_sgpa, etc.)
+    sem_cols = [c for c in df.columns if any(x in c.lower() for x in ['sem', 'sem1', 'sem2', 'sem3', 'sem4', 's1', 's2', 's3', 's4']) 
+                and any(x in c.lower() for x in ['cgpa', 'sgpa', 'gpa'])]
+    
+    # Convert semester columns to numeric
+    for col in sem_cols:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+    
+    # Fill missing overall sgp with average of semester CGPAs
+    if sem_cols:
+        def calc_overall_sgp(row):
+            if pd.isna(row['overall sgp']):
+                sem_values = [row[col] for col in sem_cols if not pd.isna(row[col])]
+                if sem_values:
+                    return round(sum(sem_values) / len(sem_values), 2)
+            return row['overall sgp']
+        df['overall sgp'] = df.apply(calc_overall_sgp, axis=1)
+    
     if 'college' not in df.columns:
         df['college'] = 'N/A'
     df['college'] = df['college'].fillna('N/A').astype(str).str.strip()

@@ -78,16 +78,49 @@ try:
     with st.spinner("🔄 Syncing live data..."):
         df = conn.read(spreadsheet=GOOGLE_SHEET_URL, ttl=60)
 
-    # Remove Timestamp column from Google Form responses (always in the first column)
-    if 'Timestamp' in df.columns:
-        df = df.drop(columns=['Timestamp'])
-    
     df.columns = [c.strip() for c in df.columns]
+
+    # Registration-number column, detected early since de-duplication needs it
+    REDG_COL = next((c for c in df.columns if 'redg' in c.lower()), None)
+
+    # ── Remove duplicate form submissions ───────────────────────────────────
+    # Some students fill the form more than once. Keep only the most recently
+    # submitted row per registration number, using the Google Form Timestamp
+    # column (always the first column) to determine "latest". Rows with a
+    # blank/missing registration number are left as-is so they don't get
+    # accidentally collapsed into a single row.
+    n_dupes_removed = 0
+    if 'Timestamp' in df.columns:
+        df['Timestamp'] = pd.to_datetime(df['Timestamp'], errors='coerce')
+        df = df.sort_values('Timestamp')
+        if REDG_COL:
+            redg_key = df[REDG_COL].astype(str).str.strip().str.upper()
+            has_redg = redg_key.notna() & (redg_key != '') & (redg_key != 'NAN')
+            dup_mask = has_redg & redg_key.duplicated(keep='last')
+            n_dupes_removed = int(dup_mask.sum())
+            df = df[~dup_mask]
+        df = df.drop(columns=['Timestamp']).reset_index(drop=True)
+    elif REDG_COL:
+        # No Timestamp column available — fall back to sheet order, where the
+        # bottom-most row for a given registration number is the most recent.
+        redg_key = df[REDG_COL].astype(str).str.strip().str.upper()
+        has_redg = redg_key.notna() & (redg_key != '') & (redg_key != 'NAN')
+        dup_mask = has_redg & redg_key.duplicated(keep='last')
+        n_dupes_removed = int(dup_mask.sum())
+        df = df[~dup_mask].reset_index(drop=True)
+
+    # Normalize renamed columns back to canonical internal names, so the rest
+    # of the app (charts, filters, groupby calls) doesn't need to change even
+    # if the sheet's header text is edited later.
+    prog_col = next((c for c in df.columns if 'programme' in c.lower() or 'department' in c.lower()), None)
+    if prog_col and prog_col != 'programme':
+        df = df.rename(columns={prog_col: 'programme'})
+
     df['overall sgp'] = pd.to_numeric(df['overall sgp'], errors='coerce')
     
     # Calculate overall SGP from semester CGPAs if missing
-    # Detect semester CGPA columns (sem1_cgpa, sem2_cgpa, s1_cgpa, sem1_sgpa, etc.)
-    sem_cols = [c for c in df.columns if any(x in c.lower() for x in ['sem', 'sem1', 'sem2', 'sem3', 'sem4', 's1', 's2', 's3', 's4']) 
+    # Detect semester CGPA columns (sem1_cgpa, sem2_cgpa, sem1(cgpa), s1_cgpa, sem1_sgpa, etc.)
+    sem_cols = [c for c in df.columns if any(x in c.lower() for x in ['sem', 'sem1', 'sem2', 'sem3', 'sem4', 'sem5', 'sem6', 's1', 's2', 's3', 's4', 's5', 's6']) 
                 and any(x in c.lower() for x in ['cgpa', 'sgpa', 'gpa'])]
     
     # Convert semester columns to numeric
@@ -145,8 +178,10 @@ try:
     def year_sort_key(y):
         return YEAR_ORDER.index(y) if y in YEAR_ORDER else len(YEAR_ORDER)
 
-    # Registration-number column (used for Records sorting/search)
-    REDG_COL = next((c for c in df.columns if 'redg' in c.lower()), None)
+    # (REDG_COL was already detected above, before de-duplication)
+
+    if n_dupes_removed > 0:
+        st.sidebar.success(f"🧹 Removed {n_dupes_removed} duplicate submission(s) — kept latest per redg. no.")
 
     # ── Sidebar Filters ────────────────────────────────────────────────────────
     with filter_ph.container():

@@ -27,7 +27,51 @@ st.markdown("""
 .section-header { font-size: 19px; font-weight: 800; color: #e2e8f0; border-left: 5px solid #8b5cf6; padding-left: 14px; margin: 28px 0 18px; }
 h5, .element-container h5 { color: #c4b5fd !important; font-size: 15px !important; font-weight: 700 !important; }
 .stSelectbox > div > div { background: rgba(139,92,246,0.12); border: 1px solid rgba(139,92,246,0.4); border-radius: 10px; }
-.stTextInput > div > div > input { background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.4); border-radius: 10px; color: #e2e8f0; }
+.stSelectbox > div > div,
+.stSelectbox > div > div * ,
+.stSelectbox input,
+div[data-baseweb="select"] * {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+}
+.stSelectbox input::placeholder {
+    color: #c4b5fd !important;
+    -webkit-text-fill-color: #c4b5fd !important;
+    opacity: 1 !important;
+}
+
+/* Text input styling — fixed so typed characters are always visible.
+   Root cause: Streamlit renders the raw <input> with its own solid white
+   background by default. A faint rgba(139,92,246,0.1) tint on top of that
+   white base still reads as a near-white box, so light-colored text
+   (#e2e8f0) was invisible on it. Fix: force a solid dark background
+   (not just a low-alpha overlay) and light text, both with !important so
+   they beat Streamlit's own inline/theme styles on the element. This is
+   applied to the wrapper (BaseWeb input container) too, since that's what
+   actually shows the white fill in the screenshot. */
+.stTextInput > div > div,
+.stTextInput > div > div > input,
+div[data-baseweb="input"],
+div[data-baseweb="base-input"] {
+    background-color: #1e1b3a !important;
+}
+.stTextInput > div > div > input {
+    border: 1px solid rgba(139,92,246,0.4) !important;
+    border-radius: 10px !important;
+    color: #f1f5f9 !important;
+    caret-color: #f1f5f9 !important;
+    -webkit-text-fill-color: #f1f5f9 !important;
+}
+.stTextInput > div > div > input:focus {
+    border: 1px solid #a78bfa !important;
+    box-shadow: 0 0 0 1px rgba(167,139,250,0.5) !important;
+}
+.stTextInput input::placeholder {
+    color: #9c8fc2 !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: #9c8fc2 !important;
+}
+
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-thumb { background: #7c3aed; border-radius: 4px; }
 footer { visibility: hidden; }
@@ -417,10 +461,14 @@ try:
         with right:
             st.markdown("##### 📂 Full Student Registry")
             s1,s2 = st.columns(2)
-            with s1: sname  = st.text_input("🔍 Search by Name",     placeholder="Type student name…")
+            with s1:
+                name_options = sorted(fdf['Name'].dropna().unique().tolist())
+                sname = st.selectbox("🔍 Search by Name", name_options, index=None,
+                                      placeholder="Type to search a name…",
+                                      help="Type to filter, then pick a name from the list")
             with s2: sregno = st.text_input("🔢 Search by Redg. No", placeholder="Type redg. no…")
             ddf = fdf.copy()
-            if sname:  ddf = ddf[ddf['Name'].str.contains(sname, case=False, na=False)]
+            if sname: ddf = ddf[ddf['Name'] == sname]
             if sregno:
                 if REDG_COL: ddf = ddf[ddf[REDG_COL].astype(str).str.contains(sregno, case=False, na=False)]
                 else:        st.warning("⚠️ No redg. no column found.")
